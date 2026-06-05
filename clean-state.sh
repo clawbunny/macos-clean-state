@@ -25,9 +25,6 @@
 #
 # The script is intentionally simple and self-contained (pure bash + Apple tools).
 # It will use sudo when needed (you will be prompted for your password).
-#
-# License: MIT
-# Repo: https://github.com/clawbunny/macos-clean-state
 
 set -euo pipefail
 
