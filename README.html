@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS Clean State</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        h1, h2, h3 {
+            color: #1a1a1a;
+        }
+        h1 {
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+        }
+        pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+        .tip {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px 16px;
+            margin: 16px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #0066cc;
+            color: white;
+        }
+        .footer {
+            margin-top: 60px;
+            font-size: 0.9em;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>macOS Clean State</h1>
+    
+    <p><strong>A simple, powerful tool for capturing, managing, and restoring clean macOS device states using native APFS snapshots and compressed DMG images.</strong></p>
+    
+    <p>Perfect for developers, QA engineers, and power users who need <strong>reproducible "clean" starting points</strong> before running tests or experiments that pollute the system (installing apps, changing settings, running malware analysis, etc.).</p>
+
+    <h2>Why This Tool?</h2>
+    <p>Modern macOS testing often requires resetting a device to a known-good state after each test run. Traditional approaches (full Time Machine restores, manual cleanup, or VM snapshots) are either slow, incomplete, or require heavy virtualization.</p>
+    
+    <p><code>clean-state.sh</code> leverages macOS's built-in APFS snapshot technology for near-instant captures and restores, combined with easy export to portable compressed disk images.</p>
+
+    <div class="tip">
+        <strong>Key Benefit:</strong> A snapshot takes seconds and uses almost zero extra space until files change. You can create a clean baseline, run destructive tests, then revert in Recovery in minutes.
+    </div>
+
+    <h2>How It Works</h2>
+    
+    <h3>1. Local APFS Snapshots (Fast &amp; Lightweight)</h3>
+    <ul>
+        <li>Uses <code>tmutil localsnapshot</code> to create point-in-time copies of your Data volume.</li>
+        <li>Snapshots live on the same drive and are extremely efficient (copy-on-write).</li>
+        <li>Named in the standard Time Machine format so they appear in Recovery's "Restore from Time Machine Backup" interface.</li>
+    </ul>
+
+    <h3>2. Human-Readable Aliases &amp; Descriptions</h3>
+    <ul>
+        <li>Attach memorable names like "Clean baseline before Foo v3 + new DB schema".</li>
+        <li>Aliases are stored in a local registry and embedded inside snapshots (as a marker file) and next to exported DMGs.</li>
+        <li>Persists even if you rename snapshots or move DMGs around.</li>
+    </ul>
+
+    <h3>3. Compressed DMG Export (Portable &amp; Archival)</h3>
+    <ul>
+        <li>Export any snapshot (or just your Home folder) as a compressed UDZO .dmg.</li>
+        <li>Store on external drives, NAS, or cloud for long-term "golden images".</li>
+        <li>DMGs can be restored on the same or different Macs via Disk Utility or <code>asr</code>.</li>
+    </ul>
+
+    <h3>4. Safe, Guided Interactive Experience</h3>
+    <p>The script provides a friendly menu with state inspection, automatic cleanup of stale mount points, and helpful warnings (e.g. when an external volume is mounted read-only).</p>
+
+    <h2>Installation</h2>
+    <pre><code>git clone https://github.com/clawbunny/macos-clean-state.git
+cd macos-clean-state
+chmod +x clean-state.sh
+
+# Optional: put it in your PATH
+ln -s "$(pwd)/clean-state.sh" ~/bin/clean-state
+</code></pre>
+
+    <h2>Basic Usage</h2>
+    <p>Just run it with no arguments for the interactive menu:</p>
+    <pre><code>./clean-state.sh</code></pre>
+
+    <p>Common CLI examples:</p>
+    <pre><code># Create a snapshot with a description
+./clean-state.sh --create-snapshot --description "Clean baseline before running full test suite"
+
+# Create a compressed DMG on an external drive
+./clean-state.sh --create-dmg --dest /Volumes/MySSD --name "Clean-2026-06-05.dmg"
+
+# Tag an existing snapshot
+./clean-state.sh --tag-snapshot --description "Before installing new security tools"
+
+# View current state and aliases
+./clean-state.sh --status
+</code></pre>
+
+    <h2>Interactive Menu Options</h2>
+    
+    <table>
+        <tr><th>Option</th><th>Description</th></tr>
+        <tr><td>1</td><td>Create a new snapshot of your current clean state.</td></tr>
+        <tr><td>2</td><td>List all existing snapshots + their aliases.</td></tr>
+        <tr><td>3</td><td>Mount a snapshot read-only so you can inspect the exact clean state.</td></tr>
+        <tr><td>4</td><td>Export a snapshot (or subfolder) as a compressed .dmg to an external drive or Desktop.</td></tr>
+        <tr><td>5</td><td>Unmount any snapshot volumes you previously mounted.</td></tr>
+        <tr><td>6</td><td>Delete old snapshots to reclaim space.</td></tr>
+        <tr><td>7</td><td>Give an existing snapshot a human-readable alias/description.</td></tr>
+        <tr><td>8</td><td>Show detailed Recovery restore instructions.</td></tr>
+        <tr><td>9</td><td>Refresh and reprint the current device state.</td></tr>
+        <tr><td>h</td><td>Show this help text.</td></tr>
+        <tr><td>q</td><td>Quit.</td></tr>
+    </table>
+
+    <h3>Destination Chooser (when creating a DMG)</h3>
+    <ul>
+        <li><strong>Numbers (1, 2, ...)</strong>: Real mounted volumes under <code>/Volumes</code>. Read-only volumes (common on external APFS "system" partitions) are clearly marked.</li>
+        <li><strong>d</strong>: Your Desktop folder (always safe for testing).</li>
+        <li><strong>o</strong>: Type any custom path (e.g. <code>/Volumes/Sandisk\ -\ Data/Backups</code>).</li>
+    </ul>
+
+    <h2>Restoring a Clean State</h2>
+    
+    <h3>Fastest Method (Recommended)</h3>
+    <ol>
+        <li>Restart and boot into Recovery (hold power button on Apple Silicon).</li>
+        <li>Choose <strong>"Restore from Time Machine Backup"</strong>.</li>
+        <li>Select your internal drive and pick the snapshot by its timestamp or alias.</li>
+        <li>Restore and reboot. You're back to the exact clean state.</li>
+    </ol>
+
+    <h3>From a DMG (Portable / Cross-Machine)</h3>
+    <ol>
+        <li>Boot to Recovery.</li>
+        <li>Open Disk Utility → View → Show All Devices.</li>
+        <li>Use the Restore tab: source = your .dmg, destination = the internal APFS container.</li>
+        <li>Or use the command line: <code>asr restore --source /path/to/Clean.dmg --target /dev/diskX --erase</code></li>
+    </ol>
+
+    <div class="note">
+        <strong>Important:</strong> Always run <code>diskutil list</code> in Recovery first to confirm disk identifiers. Restoring is destructive.
+    </div>
+
+    <h2>Tips &amp; Best Practices</h2>
+    <ul>
+        <li>Create a snapshot <em>after</em> you have your environment exactly how you want it, but <em>before</em> you start testing.</li>
+        <li>Keep 1–2 recent local snapshots for speed + at least one compressed DMG on an external drive as your "gold master".</li>
+        <li>Use aliases liberally — they make it obvious which snapshot is which months later.</li>
+        <li>When using external drives, prefer the <code>- Data</code> volume over the main volume name (the latter is often the read-only system volume).</li>
+        <li>Grant Terminal "Full Disk Access" in System Settings → Privacy &amp; Security if you encounter permission errors.</li>
+    </ul>
+
+    <h2>Requirements</h2>
+    <ul>
+        <li>macOS 10.13 High Sierra or later (APFS required)</li>
+        <li>Standard user with admin rights (for <code>sudo</code> operations)</li>
+        <li>Optional: external drive with enough free space for DMG archives</li>
+    </ul>
+
+    <h2>License</h2>
+    <p>This project is licensed under the MIT License. See the <a href="LICENSE">LICENSE</a> file for details.</p>
+
+    <div class="footer">
+        <p>Created to solve the very real problem of "I need to reset this Mac to a known-clean state before every test run."</p>
+        <p>Project: <a href="https://github.com/clawbunny/macos-clean-state">github.com/clawbunny/macos-clean-state</a></p>
+    </div>
+</body>
+</html>

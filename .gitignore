@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+*.swp
+*~
+.idea/
+.vscode/
+*.sublime-*
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+
+# The script may create these during use (they get cleaned up, but ignore anyway)
+Volumes/CleanSnapshot-*
+Volumes/CleanSnapshot-dmg-*
